@@ -1,0 +1,17 @@
+[project]
+name = "msit-book-alchemy"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "GreQ", email = "gregor.hinsberg@gmail.com" }
+]
+requires-python = ">=3.15"
+dependencies = []
+
+[project.scripts]
+msit-book-alchemy = "msit_book_alchemy:main"
+
+[build-system]
+requires = ["uv_build>=0.13.4,<0.14.0"]
+build-backend = "uv_build"
