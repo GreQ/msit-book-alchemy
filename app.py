@@ -14,6 +14,10 @@ db.init_app(app)
 with app.app_context():
     print("Creating database tables...")
     db.create_all()
+    if db.session.execute(db.select(Book.id).limit(1)).first() is None:
+        from seed_data import seed_database
+
+        print(f"Added {seed_database()} sample books.")
 
 @app.route("/")
 def index():

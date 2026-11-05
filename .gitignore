@@ -1,7 +1,7 @@
 #db
-*.sqlite
-*.sqlite3
-*.db
+#*.sqlite
+#*.sqlite3
+#*.db
 
 # Python bytecode
 __pycache__/
