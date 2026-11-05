@@ -22,7 +22,7 @@ class Author(db.Model):
 
 class Book(db.Model):
     id: Mapped[int]  = mapped_column(primary_key=True, autoincrement=True)
-    isbn: Mapped[str] = mapped_column(nullable=False, unique=True)
+    isbn: Mapped[str] = mapped_column(db.String(10), nullable=False, unique=True)
     title: Mapped[str] = mapped_column(nullable=False)
     publication_year: Mapped[datetime]
     author_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('author.id'), nullable=False)

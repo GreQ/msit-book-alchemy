@@ -3,15 +3,17 @@
 {% block content %}
     {% for book in books %}
     <div>
+      <img
+        src="https://covers.openlibrary.org/b/isbn/{{ book.isbn|urlencode }}-M.jpg"
+        alt="Cover of {{ book.title }}"
+        width="128"
+        height="192"
+        loading="lazy"
+      >
       <h3>{{ book.title }}</h3>
       <b>isbn:</b> {{ book.isbn }} <br>
       <b>year:</b> {{ book.publication_year }} <br>
       <b>author:</b> {{ book.author.name }} <br>
     </div>
     {% endfor %}
-    <h3>Enhance your homepage</h3>
-    <ul>
-      <li>Next to the book’s title, also display its author. This is really easy using SQLAlchemy, because the Book and the Author models are connected.</li>
-      <li>Display each book’s cover image alongside the book title. You could obtain the image using the ISBN and any external API you would like to use.</li>
-    </ul>
 {% endblock %}

@@ -5,8 +5,17 @@
     <label for="title">Title:</label>
     <input type="text" id="title" name="title" required><br><br>
 
-    <label for="isbn">ISBN:</label>
-    <input type="text" id="isbn" name="isbn" required><br><br>
+    <label for="isbn">ISBN-10:</label>
+    <input
+      type="text"
+      id="isbn"
+      name="isbn"
+      inputmode="text"
+      pattern="[0-9-]+"
+      maxlength="19"
+      title="Enter exactly 10 digits; hyphens are allowed"
+      required
+    ><br><br>
 
     <label for="publication_year">Publication Year:</label>
     <input type="date" id="publication_year" name="publication_year" required><br><br>
@@ -20,4 +29,34 @@
 
     <input type="submit" value="Add Book">
   </form>
+
+  <script>
+    const isbnInput = document.getElementById("isbn");
+    const isbnForm = isbnInput.form;
+
+    function getNormalizedIsbn() {
+      return isbnInput.value.replace(/-/g, "");
+    }
+
+    function isValidIsbn() {
+      return /^[0-9]{10}$/.test(getNormalizedIsbn());
+    }
+
+    isbnInput.addEventListener("change", () => {
+      const valid = isValidIsbn();
+      isbnInput.setCustomValidity(valid ? "" : "ISBN must contain exactly 10 digits; hyphens are allowed.");
+      if (!valid && isbnInput.value) {
+        window.alert("ISBN must contain exactly 10 digits; hyphens are allowed.");
+      }
+    });
+
+    isbnForm.addEventListener("submit", (event) => {
+      if (!isValidIsbn()) {
+        event.preventDefault();
+        window.alert("ISBN must contain exactly 10 digits; hyphens are allowed.");
+        return;
+      }
+      isbnInput.value = getNormalizedIsbn();
+    });
+  </script>
 {% endblock %}

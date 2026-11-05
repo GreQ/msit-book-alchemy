@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from data_models import db, Author, Book
 from os import path
 from datetime import date
+import re
 
 DB_NAME = "library.sqlite"
 DB_PATH = path.join(path.dirname(__file__), "data", DB_NAME)
@@ -24,12 +25,15 @@ def add_book():
     if request.method == "POST":
         data = request.form
         title = data.get("title")
-        isbn = data.get("isbn") #TODO: Validate ISBN format 
+        isbn = data.get("isbn", "").replace("-", "")
         publication_year = date.fromisoformat(data.get("publication_year")) if data.get("publication_year") else None
         author_id = data.get("author_id")
 
         if not all([title, isbn, publication_year, author_id]):
             return jsonify({"error": "Missing required fields"}), 400
+
+        if not re.fullmatch(r"[0-9]{10}", isbn):
+            return jsonify({"error": "ISBN must contain exactly 10 digits; hyphens are allowed"}), 400
 
         new_book = Book(title=title, isbn=isbn, publication_year=publication_year, author_id=author_id)
         db.session.add(new_book)
@@ -63,4 +67,3 @@ def add_author():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
