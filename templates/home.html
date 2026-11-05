@@ -1,6 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Home | Library{% endblock %}
 {% block content %}
+    <form method="get" action="{{ url_for('index') }}">
+      <label for="sort">Sort books by:</label>
+      <select id="sort" name="sort" onchange="this.form.submit()">
+        <option value="title" {% if sort_by == "title" %}selected{% endif %}>Title</option>
+        <option value="author" {% if sort_by == "author" %}selected{% endif %}>Author</option>
+        <option value="year" {% if sort_by == "year" %}selected{% endif %}>Publication year</option>
+      </select>
+      <noscript><button type="submit">Sort</button></noscript>
+    </form>
+
     {% for book in books %}
     <div>
       <img

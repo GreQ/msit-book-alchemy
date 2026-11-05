@@ -21,8 +21,28 @@ with app.app_context():
 
 @app.route("/")
 def index():
-    books = db.session.execute(db.select(Book).order_by(Book.title)).scalars()
-    return render_template("home.html", books=books)
+    sort_by = request.args.get("sort", "title")
+    sort_columns = {
+        "title": Book.title,
+        "year": Book.publication_year,
+    }
+
+    statement = db.select(Book)
+    if sort_by == "author":
+        statement = statement.join(Book.author).order_by(
+            db.func.lower(Author.name), db.func.lower(Book.title)
+        )
+    else:
+        sort_by = sort_by if sort_by in sort_columns else "title"
+        if sort_by == "year":
+            statement = statement.order_by(
+                sort_columns[sort_by], db.func.lower(Book.title)
+            )
+        else:
+            statement = statement.order_by(db.func.lower(Book.title))
+
+    books = db.session.execute(statement).scalars()
+    return render_template("home.html", books=books, sort_by=sort_by)
 
 @app.route("/add_book", methods=["GET", "POST"])
 def add_book():
