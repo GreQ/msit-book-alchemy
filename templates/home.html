@@ -2,7 +2,15 @@
 {% block title %}Home | Library{% endblock %}
 {% block content %}
     <form method="get" action="{{ url_for('index') }}">
+      <label for="search">Search book titles:</label>
+      <input type="search" id="search" name="q" value="{{ query }}">
+      <input type="hidden" name="sort" value="{{ sort_by }}">
+      <button type="submit">Search</button>
+    </form>
+
+    <form method="get" action="{{ url_for('index') }}">
       <label for="sort">Sort books by:</label>
+      <input type="hidden" name="q" value="{{ query }}">
       <select id="sort" name="sort" onchange="this.form.submit()">
         <option value="title" {% if sort_by == "title" %}selected{% endif %}>Title</option>
         <option value="author" {% if sort_by == "author" %}selected{% endif %}>Author</option>
@@ -10,6 +18,14 @@
       </select>
       <noscript><button type="submit">Sort</button></noscript>
     </form>
+
+    {% if not books %}
+      {% if query %}
+        <p>No books found matching "{{ query }}".</p>
+      {% else %}
+        <p>No books are available.</p>
+      {% endif %}
+    {% endif %}
 
     {% for book in books %}
     <div>

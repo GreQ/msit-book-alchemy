@@ -21,6 +21,7 @@ with app.app_context():
 
 @app.route("/")
 def index():
+    query = request.args.get("q", "").strip()
     sort_by = request.args.get("sort", "title")
     sort_columns = {
         "title": Book.title,
@@ -28,6 +29,10 @@ def index():
     }
 
     statement = db.select(Book)
+    if query:
+        escaped_query = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        statement = statement.where(Book.title.ilike(f"%{escaped_query}%", escape="\\"))
+
     if sort_by == "author":
         statement = statement.join(Book.author).order_by(
             db.func.lower(Author.name), db.func.lower(Book.title)
@@ -41,8 +46,10 @@ def index():
         else:
             statement = statement.order_by(db.func.lower(Book.title))
 
-    books = db.session.execute(statement).scalars()
-    return render_template("home.html", books=books, sort_by=sort_by)
+    books = db.session.execute(statement).scalars().all()
+    return render_template(
+        "home.html", books=books, sort_by=sort_by, query=query
+    )
 
 @app.route("/add_book", methods=["GET", "POST"])
 def add_book():
