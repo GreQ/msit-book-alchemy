@@ -10,6 +10,17 @@ uv run python seed_data.py
 
 The seeder preserves existing records and stores ISBN-10 values as strings.
 
+## Run the application
+
+This project runs directly from `app.py` rather than as an installed Python
+package. Install dependencies with `uv sync`, then start Flask with:
+
+```bash
+uv run flask --app app run --host 0.0.0.0 --port 5000
+```
+
+In Codio, open the preview for port `5000`.
+
 ## Ratings and recommendations
 
 Books can be rated from 1 to 10. Existing SQLite databases are updated at app
