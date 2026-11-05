@@ -1,16 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  </head>
-  <body>
-    home
+{% extends "base.html" %}
+{% block title %}Home | Library{% endblock %}
+{% block content %}
     {% for book in books %}
-    <div> <h3>{{ book.title }}</h3>
+    <div>
+      <h3>{{ book.title }}</h3>
+      <b>isbn:</b> {{ book.isbn }} <br>
+      <b>year:</b> {{ book.publication_year }} <br>
+      <b>author:</b> {{ book.author.name }} <br>
     </div>
     {% endfor %}
-
-  </body>
-</html>
+    <h3>Enhance your homepage</h3>
+    <ul>
+      <li>Next to the book’s title, also display its author. This is really easy using SQLAlchemy, because the Book and the Author models are connected.</li>
+      <li>Display each book’s cover image alongside the book title. You could obtain the image using the ISBN and any external API you would like to use.</li>
+    </ul>
+{% endblock %}

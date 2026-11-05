@@ -27,7 +27,7 @@ class Book(db.Model):
     publication_year: Mapped[datetime]
     author_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('author.id'), nullable=False)
 
-    #author: Mapped[Author] = db.relationship('Author', backref=db.backref('books', lazy=True))
+    author: Mapped[Author] = db.relationship('Author', backref=db.backref('books', lazy=True))
 
     def __repr__(self):
         return f'<Book {self.title}>'
