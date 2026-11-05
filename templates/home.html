@@ -40,6 +40,11 @@
       <b>isbn:</b> {{ book.isbn }} <br>
       <b>year:</b> {{ book.publication_year }} <br>
       <b>author:</b> {{ book.author.name }} <br>
+      <form method="post" action="{{ url_for('delete_book', book_id=book.id) }}">
+        <input type="hidden" name="q" value="{{ query }}">
+        <input type="hidden" name="sort" value="{{ sort_by }}">
+        <button type="submit">Delete Book</button>
+      </form>
     </div>
     {% endfor %}
 {% endblock %}

@@ -1,13 +1,15 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from data_models import db, Author, Book
-from os import path
+from os import getenv, path
 from datetime import date
 import re
+from secrets import token_hex
 
 DB_NAME = "library.sqlite"
 DB_PATH = path.join(path.dirname(__file__), "data", DB_NAME)
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = getenv("SECRET_KEY") or token_hex(32)
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 db.init_app(app)
 
@@ -49,6 +51,29 @@ def index():
     books = db.session.execute(statement).scalars().all()
     return render_template(
         "home.html", books=books, sort_by=sort_by, query=query
+    )
+
+@app.route("/book/<int:book_id>/delete", methods=["POST"])
+def delete_book(book_id):
+    book = db.get_or_404(Book, book_id)
+    author = book.author
+    title = book.title
+
+    db.session.delete(book)
+    db.session.flush()
+    if db.session.execute(
+        db.select(Book.id).where(Book.author_id == author.id).limit(1)
+    ).first() is None:
+        db.session.delete(author)
+
+    db.session.commit()
+    flash(f'"{title}" was deleted successfully.', "success")
+    return redirect(
+        url_for(
+            "index",
+            q=request.form.get("q", ""),
+            sort=request.form.get("sort", "title"),
+        )
     )
 
 @app.route("/add_book", methods=["GET", "POST"])

@@ -7,6 +7,11 @@
     <title>{% block title %}Library{% endblock %}</title>
   </head>
   <body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <p class="{{ category }}">{{ message }}</p>
+      {% endfor %}
+    {% endwith %}
     {% block content %}{% endblock %}
   </body>
 </html>
