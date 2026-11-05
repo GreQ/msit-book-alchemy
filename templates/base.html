@@ -3,15 +3,90 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>{% block title %}Library{% endblock %}</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Segoe UI", sans-serif;
+        color: #172a3a;
+        background: #f3f6f2;
+        font-synthesis: none;
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; }
+      a { color: #176b58; }
+      .site-header { background: #173c36; color: #fff; }
+      .header-inner, main { width: min(1120px, calc(100% - 2rem)); margin: 0 auto; }
+      .header-inner { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+      .brand { color: #fff; text-decoration: none; font-size: 1.25rem; font-weight: 750; letter-spacing: .02em; }
+      nav { display: flex; gap: 1.1rem; }
+      nav a { color: #e3f0e9; text-decoration: none; font-weight: 600; }
+      nav a:hover { color: #b7e5cd; }
+      main { padding: 2rem 0 4rem; }
+      .eyebrow { color: #53806e; text-transform: uppercase; letter-spacing: .12em; font-size: .75rem; font-weight: 700; }
+      h1 { margin: .25rem 0 .5rem; font-size: clamp(2rem, 5vw, 3rem); }
+      h2 { margin-top: 2rem; }
+      .muted, .meta { color: #64746e; }
+      .toolbar, .card-actions, .inline-form { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+      .toolbar { justify-content: space-between; margin: 1.5rem 0; padding: 1rem; background: #fff; border: 1px solid #e1e9e1; border-radius: 14px; }
+      .toolbar form { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+      input, select, button { font: inherit; }
+      input[type="search"], input[type="text"], input[type="date"], input[type="number"], select, textarea {
+        min-height: 42px; padding: .55rem .75rem; border: 1px solid #cad7cc; border-radius: 8px; background: #fff; color: inherit;
+      }
+      button, .button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: .55rem .9rem; border: 0; border-radius: 8px; background: #176b58; color: #fff; text-decoration: none; font-weight: 650; cursor: pointer; }
+      button:hover, .button:hover { background: #105341; }
+      button.secondary, .button.secondary { background: #e7f0e9; color: #234b3f; }
+      button.danger { background: #fff0ed; color: #a53d32; }
+      button.danger:hover { background: #f8dcd7; }
+      .book-grid, .author-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)); gap: 1rem; }
+      .book-card, .author-card, .panel { overflow: hidden; background: #fff; border: 1px solid #e1e9e1; border-radius: 14px; box-shadow: 0 5px 18px #18352d0a; }
+      .book-card { display: grid; grid-template-columns: 104px 1fr; gap: 1rem; padding: 1rem; }
+      .book-cover { width: 104px; height: 156px; object-fit: cover; background: #edf2eb; border-radius: 6px; }
+      .book-info h2 { margin: .1rem 0 .4rem; font-size: 1.1rem; line-height: 1.35; }
+      .book-info h2 a, .author-name { color: #173c36; text-decoration: none; }
+      .book-info h2 a:hover, .author-name:hover { text-decoration: underline; }
+      .book-info p { margin: .35rem 0; font-size: .9rem; }
+      .card-actions { grid-column: 1 / -1; padding-top: .2rem; border-top: 1px solid #edf1ec; }
+      .card-actions form { margin: 0; }
+      .author-card { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .9rem 1rem; }
+      .flash { margin: 0 0 1rem; padding: .85rem 1rem; border-radius: 9px; }
+      .flash.success { background: #e4f4e9; color: #205d3b; }
+      .flash.error { background: #fff0ed; color: #913c31; }
+      .panel { padding: clamp(1.2rem, 4vw, 2rem); }
+      .detail-layout { display: grid; grid-template-columns: minmax(150px, 240px) 1fr; gap: 2rem; align-items: start; }
+      .detail-cover { width: 100%; max-width: 240px; border-radius: 10px; box-shadow: 0 12px 30px #172a3a24; }
+      .stack { display: grid; gap: 1rem; max-width: 620px; }
+      .stack label { display: grid; gap: .35rem; font-weight: 600; }
+      .book-list { padding-left: 1.25rem; line-height: 2; }
+      @media (max-width: 600px) {
+        .header-inner { align-items: flex-start; flex-direction: column; padding: 1rem 0; }
+        nav { flex-wrap: wrap; }
+        .toolbar { align-items: flex-start; flex-direction: column; }
+        .detail-layout { grid-template-columns: 1fr; }
+        .detail-cover { max-width: 170px; }
+      }
+    </style>
   </head>
   <body>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <p class="{{ category }}">{{ message }}</p>
-      {% endfor %}
-    {% endwith %}
-    {% block content %}{% endblock %}
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="{{ url_for('index') }}">The Reading Room</a>
+        <nav aria-label="Main navigation">
+          <a href="{{ url_for('index') }}">Library</a>
+          <a href="{{ url_for('add_book') }}">Add a book</a>
+          <a href="{{ url_for('add_author') }}">Add an author</a>
+          <a href="{{ url_for('recommendation') }}">Get a recommendation</a>
+        </nav>
+      </div>
+    </header>
+    <main>
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <p class="flash {{ category }}" role="status">{{ message }}</p>
+        {% endfor %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
   </body>
 </html>

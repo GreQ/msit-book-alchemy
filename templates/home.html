@@ -1,15 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Home | Library{% endblock %}
+{% block title %}Library | The Reading Room{% endblock %}
 {% block content %}
+  <p class="eyebrow">Your personal collection</p>
+  <h1>The Library</h1>
+  <p class="muted">A little home for the stories you’ve loved, and the ones still to come.</p>
+
+  <section class="toolbar" aria-label="Find and sort books">
     <form method="get" action="{{ url_for('index') }}">
-      <label for="search">Search book titles:</label>
-      <input type="search" id="search" name="q" value="{{ query }}">
+      <label for="search">Search titles</label>
+      <input type="search" id="search" name="q" value="{{ query }}" placeholder="Try a title...">
       <input type="hidden" name="sort" value="{{ sort_by }}">
       <button type="submit">Search</button>
     </form>
 
     <form method="get" action="{{ url_for('index') }}">
-      <label for="sort">Sort books by:</label>
+      <label for="sort">Sort by</label>
       <input type="hidden" name="q" value="{{ query }}">
       <select id="sort" name="sort" onchange="this.form.submit()">
         <option value="title" {% if sort_by == "title" %}selected{% endif %}>Title</option>
@@ -18,33 +23,78 @@
       </select>
       <noscript><button type="submit">Sort</button></noscript>
     </form>
+  </section>
 
+  {% if authors %}
+    <section aria-labelledby="authors-heading">
+      <h2 id="authors-heading">Authors</h2>
+      <div class="author-grid">
+        {% for author in authors %}
+          <div class="author-card">
+            <a class="author-name" href="{{ url_for('author_detail', author_id=author.id) }}">{{ author.name }}</a>
+            <form method="post" action="{{ url_for('delete_author', author_id=author.id) }}">
+              <input type="hidden" name="q" value="{{ query }}">
+              <input type="hidden" name="sort" value="{{ sort_by }}">
+              <button class="danger" type="submit">Delete Author</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section aria-labelledby="books-heading">
+    <h2 id="books-heading">Books{% if query %} matching “{{ query }}”{% endif %}</h2>
     {% if not books %}
-      {% if query %}
-        <p>No books found matching "{{ query }}".</p>
-      {% else %}
-        <p>No books are available.</p>
-      {% endif %}
+      <div class="panel">
+        {% if query %}
+          <p>No books found matching “{{ query }}”. Try another title.</p>
+        {% else %}
+          <p>Your library is empty for now. Add a book to get started.</p>
+          <a class="button" href="{{ url_for('add_book') }}">Add your first book</a>
+        {% endif %}
+      </div>
+    {% else %}
+      <div class="book-grid">
+        {% for book in books %}
+          <article class="book-card">
+            <a href="{{ url_for('book_detail', book_id=book.id) }}" aria-label="View {{ book.title }}">
+              <img
+                class="book-cover"
+                src="https://covers.openlibrary.org/b/isbn/{{ book.isbn|urlencode }}-M.jpg"
+                alt="Cover of {{ book.title }}"
+                loading="lazy"
+              >
+            </a>
+            <div class="book-info">
+              <h2><a href="{{ url_for('book_detail', book_id=book.id) }}">{{ book.title }}</a></h2>
+              <p>by <a href="{{ url_for('author_detail', author_id=book.author.id) }}">{{ book.author.name }}</a></p>
+              <p class="meta">{{ book.publication_year.year if book.publication_year else "Year unknown" }}</p>
+              <p>{% if book.rating %}★ {{ book.rating }}/10{% else %}Not rated yet{% endif %}</p>
+            </div>
+            <div class="card-actions">
+              <form class="inline-form" method="post" action="{{ url_for('rate_book', book_id=book.id) }}">
+                <input type="hidden" name="next" value="home">
+                <input type="hidden" name="q" value="{{ query }}">
+                <input type="hidden" name="sort" value="{{ sort_by }}">
+                <label for="rating-{{ book.id }}">Rate</label>
+                <select id="rating-{{ book.id }}" name="rating" required>
+                  <option value="">—</option>
+                  {% for rating_value in range(1, 11) %}
+                    <option value="{{ rating_value }}" {% if book.rating == rating_value %}selected{% endif %}>{{ rating_value }}</option>
+                  {% endfor %}
+                </select>
+                <button class="secondary" type="submit">Save</button>
+              </form>
+              <form method="post" action="{{ url_for('delete_book', book_id=book.id) }}">
+                <input type="hidden" name="q" value="{{ query }}">
+                <input type="hidden" name="sort" value="{{ sort_by }}">
+                <button class="danger" type="submit">Delete Book</button>
+              </form>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
     {% endif %}
-
-    {% for book in books %}
-    <div>
-      <img
-        src="https://covers.openlibrary.org/b/isbn/{{ book.isbn|urlencode }}-M.jpg"
-        alt="Cover of {{ book.title }}"
-        width="128"
-        height="192"
-        loading="lazy"
-      >
-      <h3>{{ book.title }}</h3>
-      <b>isbn:</b> {{ book.isbn }} <br>
-      <b>year:</b> {{ book.publication_year }} <br>
-      <b>author:</b> {{ book.author.name }} <br>
-      <form method="post" action="{{ url_for('delete_book', book_id=book.id) }}">
-        <input type="hidden" name="q" value="{{ query }}">
-        <input type="hidden" name="sort" value="{{ sort_by }}">
-        <button type="submit">Delete Book</button>
-      </form>
-    </div>
-    {% endfor %}
+  </section>
 {% endblock %}

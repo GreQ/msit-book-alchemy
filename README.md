@@ -9,3 +9,19 @@ uv run python seed_data.py
 ```
 
 The seeder preserves existing records and stores ISBN-10 values as strings.
+
+## Ratings and recommendations
+
+Books can be rated from 1 to 10. Existing SQLite databases are updated at app
+startup to add the nullable `rating` column without removing existing records.
+
+To enable AI book recommendations, configure an OpenAI API key:
+
+```powershell
+$env:OPENAI_API_KEY = "your-api-key"
+```
+
+The app uses `gpt-4o-mini` and OpenAI's chat-completions endpoint by default.
+For an OpenAI-compatible provider, optionally set `OPENAI_BASE_URL` and
+`OPENAI_MODEL`. Book titles, authors, and ratings are sent to that provider only
+when a user submits the recommendation form.

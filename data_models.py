@@ -21,13 +21,24 @@ class Author(db.Model):
         return f'Author: {self.name}, Birth Date: {self.birth_date}, Date of Death: {self.date_of_death}'
 
 class Book(db.Model):
+    __table_args__ = (
+        db.CheckConstraint(
+            "rating IS NULL OR rating BETWEEN 1 AND 10",
+            name="ck_book_rating_range",
+        ),
+    )
+
     id: Mapped[int]  = mapped_column(primary_key=True, autoincrement=True)
     isbn: Mapped[str] = mapped_column(db.String(10), nullable=False, unique=True)
     title: Mapped[str] = mapped_column(nullable=False)
     publication_year: Mapped[datetime]
     author_id: Mapped[int] = mapped_column(db.Integer, db.ForeignKey('author.id'), nullable=False)
+    rating: Mapped[int | None] = mapped_column(db.Integer, nullable=True)
 
-    author: Mapped[Author] = db.relationship('Author', backref=db.backref('books', lazy=True))
+    author: Mapped[Author] = db.relationship(
+        'Author',
+        backref=db.backref('books', lazy=True, cascade='all, delete-orphan'),
+    )
 
     def __repr__(self):
         return f'<Book {self.title}>'

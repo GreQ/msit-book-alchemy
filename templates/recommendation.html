@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Book recommendation | The Reading Room{% endblock %}
+{% block content %}
+  <p class="eyebrow">A little inspiration</p>
+  <h1>What should you read next?</h1>
+  <p class="muted">Get a suggestion based on the books in your library and any ratings you’ve given.</p>
+
+  <section class="panel">
+    {% if recommendation_text %}
+      <h2>Your recommendation</h2>
+      <p>{{ recommendation_text }}</p>
+      <form method="post">
+        <button type="submit">Suggest another</button>
+      </form>
+    {% elif error_message %}
+      <p class="flash error" role="alert">{{ error_message }}</p>
+      {% if not api_configured %}
+        <p>Configure <code>OPENAI_API_KEY</code> before requesting a recommendation.</p>
+      {% endif %}
+    {% else %}
+      <p>Your book titles, authors, and optional ratings are sent to the configured AI provider only after you submit this form.</p>
+      {% if api_configured %}
+        <form method="post">
+          <button type="submit">Recommend a book</button>
+        </form>
+      {% else %}
+        <p>To enable recommendations, configure <code>OPENAI_API_KEY</code>. For an OpenAI-compatible provider, you may also set <code>OPENAI_BASE_URL</code> and <code>OPENAI_MODEL</code>.</p>
+      {% endif %}
+    {% endif %}
+  </section>
+{% endblock %}
