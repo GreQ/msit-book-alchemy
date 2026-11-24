@@ -3,12 +3,12 @@
 {% block content %}
   <form action="/add_author" method="POST">
   <label for="name">Author Name:</label> 
-  <input type="text" id="name" name="name" required><br><br>
+  <input type="text" id="name" name="name" value="{{ form.name }}" required><br><br>
   
   <label for="birthdate">Birthdate:</label> 
-  <input type="date" id="birthdate" name="birthdate" required><br><br> 
-  <label for="date_of_death">Date of Death:</label> 
-  <input type="date" id="date_of_death" name="date_of_death"><br><br>
+  <input type="date" id="birthdate" name="birthdate" value="{{ form.birthdate }}" required><br><br> 
+  <label for="date_of_death">Date of Death (optional):</label> 
+  <input type="date" id="date_of_death" name="date_of_death" value="{{ form.date_of_death }}"><br><br>
   <input type="submit" value="Add Author"> 
   </form>
 {% endblock %}

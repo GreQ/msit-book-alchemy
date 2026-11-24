@@ -21,6 +21,13 @@ uv run flask --app app run --host 0.0.0.0 --port 5000
 
 In Codio, open the preview for port `5000`.
 
+## Author names and dates
+
+Author names are unique, and the date of death is optional. Existing databases
+are upgraded at startup, after a copy is saved as `data/library.sqlite.bak`.
+Identical duplicate authors are merged (their books are kept); different authors
+who share a name get a numbered suffix.
+
 ## Ratings and recommendations
 
 Books can be rated from 1 to 10. Existing SQLite databases are updated at app

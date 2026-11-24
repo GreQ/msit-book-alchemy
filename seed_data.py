@@ -57,18 +57,25 @@ def fetch_book_metadata() -> dict[str, OpenLibraryBook]:
         with urlopen(request, timeout=20) as response:
             response_data = json.load(response)
     except (URLError, TimeoutError, json.JSONDecodeError) as error:
-        raise RuntimeError("Could not retrieve sample books from Open Library") from error
+        raise RuntimeError(
+            "Could not retrieve sample books from Open Library"
+        ) from error
 
     metadata: dict[str, OpenLibraryBook] = {}
     for isbn, expected_author in BOOK_AUTHORS.items():
         book = response_data.get(f"ISBN:{isbn}")
         if not book or not book.get("title"):
-            raise RuntimeError(f"Open Library returned no book data for ISBN {isbn}")
+            raise RuntimeError(
+                f"Open Library returned no book data for ISBN {isbn}"
+            )
 
         authors = book.get("authors", [])
-        if not any(author.get("name") == expected_author for author in authors):
+        if not any(
+            author.get("name") == expected_author for author in authors
+        ):
             raise RuntimeError(
-                f"Open Library returned an unexpected author for ISBN {isbn}"
+                "Open Library returned an unexpected author "
+                f"for ISBN {isbn}"
             )
         metadata[isbn] = book
 

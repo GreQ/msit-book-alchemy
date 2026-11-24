@@ -6,8 +6,11 @@ from secrets import token_hex
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for
-from data_models import db, Author, Book
+from flask import Flask, flash, redirect, render_template, request, url_for
+from sqlalchemy.exc import IntegrityError
+
+from data_models import Author, Book, db
+from migrations import run_migrations
 
 DB_NAME = "library.sqlite"
 DB_PATH = path.join(path.dirname(__file__), "data", DB_NAME)
@@ -15,7 +18,9 @@ DB_PATH = path.join(path.dirname(__file__), "data", DB_NAME)
 app = Flask(__name__)
 app.config["SECRET_KEY"] = getenv("SECRET_KEY") or token_hex(32)
 app.config["OPENAI_API_KEY"] = getenv("OPENAI_API_KEY")
-app.config["OPENAI_BASE_URL"] = getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+app.config["OPENAI_BASE_URL"] = getenv(
+    "OPENAI_BASE_URL", "https://api.openai.com/v1"
+)
 app.config["OPENAI_MODEL"] = getenv("OPENAI_MODEL", "gpt-4o-mini")
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 db.init_app(app)
@@ -23,17 +28,12 @@ db.init_app(app)
 with app.app_context():
     print("Creating database tables...")
     db.create_all()
-    book_columns = {column["name"] for column in db.inspect(db.engine).get_columns("book")}
-    if "rating" not in book_columns:
-        with db.engine.begin() as connection:
-            connection.exec_driver_sql(
-                "ALTER TABLE book ADD COLUMN rating INTEGER "
-                "CHECK (rating IS NULL OR rating BETWEEN 1 AND 10)"
-            )
+    run_migrations()
     if db.session.execute(db.select(Book.id).limit(1)).first() is None:
         from seed_data import seed_database
 
         print(f"Added {seed_database()} sample books.")
+
 
 @app.route("/")
 def index():
@@ -46,8 +46,14 @@ def index():
 
     statement = db.select(Book)
     if query:
-        escaped_query = query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
-        statement = statement.where(Book.title.ilike(f"%{escaped_query}%", escape="\\"))
+        escaped_query = (
+            query.replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+        )
+        statement = statement.where(
+            Book.title.ilike(f"%{escaped_query}%", escape="\\")
+        )
 
     if sort_by == "author":
         statement = statement.join(Book.author).order_by(
@@ -110,7 +116,10 @@ def delete_author(author_id):
 
     db.session.delete(author)
     db.session.commit()
-    flash(f'{name} and all of their books were deleted successfully.', "success")
+    flash(
+        f'{name} and all of their books were deleted successfully.',
+        "success",
+    )
     return _library_redirect()
 
 
@@ -156,8 +165,9 @@ def recommendation():
         api_key = app.config["OPENAI_API_KEY"]
         if not api_key:
             error_message = (
-                "Set OPENAI_API_KEY to enable recommendations. You can also set "
-                "OPENAI_BASE_URL and OPENAI_MODEL for an OpenAI-compatible provider."
+                "Set OPENAI_API_KEY to enable recommendations. You can also "
+                "set OPENAI_BASE_URL and OPENAI_MODEL for an "
+                "OpenAI-compatible provider."
             )
         else:
             books = db.session.execute(
@@ -177,9 +187,10 @@ def recommendation():
                     {
                         "role": "system",
                         "content": (
-                            "Recommend one book the reader has not already read. "
-                            "Use their library and optional ratings to tailor your "
-                            "choice. Briefly explain why it suits them."
+                            "Recommend one book the reader has not "
+                            "already read. Use their library and optional "
+                            "ratings to tailor your choice. Briefly explain "
+                            "why it suits them."
                         ),
                     },
                     {
@@ -189,7 +200,8 @@ def recommendation():
                 ],
             }
             api_request = Request(
-                f'{app.config["OPENAI_BASE_URL"].rstrip("/")}/chat/completions',
+                app.config["OPENAI_BASE_URL"].rstrip("/")
+                + "/chat/completions",
                 data=json.dumps(payload).encode("utf-8"),
                 headers={
                     "Authorization": f"Bearer {api_key}",
@@ -200,17 +212,34 @@ def recommendation():
             try:
                 with urlopen(api_request, timeout=30) as response:
                     result = json.load(response)
-                recommendation_text = result["choices"][0]["message"]["content"]
-                if not isinstance(recommendation_text, str) or not recommendation_text.strip():
-                    raise ValueError("The recommendation provider returned empty text.")
+                message = result["choices"][0]["message"]
+                recommendation_text = message["content"]
+                if (
+                    not isinstance(recommendation_text, str)
+                    or not recommendation_text.strip()
+                ):
+                    raise ValueError(
+                        "The recommendation provider returned empty text."
+                    )
             except HTTPError as error:
                 error_message = (
                     f"The recommendation provider returned HTTP {error.code}."
                 )
             except (URLError, TimeoutError) as error:
-                error_message = f"Could not reach the recommendation provider: {error.reason if isinstance(error, URLError) else 'request timed out'}."
-            except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError):
-                error_message = "The recommendation provider returned an invalid response."
+                reason = getattr(error, "reason", "request timed out")
+                error_message = (
+                    f"Could not reach the recommendation provider: {reason}."
+                )
+            except (
+                json.JSONDecodeError,
+                KeyError,
+                IndexError,
+                TypeError,
+                ValueError,
+            ):
+                error_message = (
+                    "The recommendation provider returned an invalid response."
+                )
 
     return render_template(
         "recommendation.html",
@@ -219,50 +248,154 @@ def recommendation():
         api_configured=bool(app.config["OPENAI_API_KEY"]),
     ), 502 if error_message and app.config["OPENAI_API_KEY"] else 200
 
+
+def _parse_date(value):
+    """Return an ISO date string as a date, or None if it is not valid."""
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        return None
+
+
+def _validate_book_form(form):
+    """Return the cleaned book fields and a list of validation errors."""
+    errors = []
+    title = form.get("title", "").strip()
+    isbn = form.get("isbn", "").strip().replace("-", "")
+    publication_year = _parse_date(form.get("publication_year", ""))
+    author_id = form.get("author_id", type=int)
+
+    if not title:
+        errors.append("Title is required.")
+    if not re.fullmatch(r"[0-9]{10}", isbn):
+        errors.append(
+            "ISBN must contain exactly 10 digits; hyphens are allowed."
+        )
+    if publication_year is None:
+        errors.append("A valid publication date is required.")
+    if author_id is None or db.session.get(Author, author_id) is None:
+        errors.append("Choose an existing author.")
+
+    fields = {
+        "title": title,
+        "isbn": isbn,
+        "publication_year": publication_year,
+        "author_id": author_id,
+    }
+    return fields, errors
+
+
+def _isbn_exists(isbn):
+    return db.session.execute(
+        db.select(Book.id).where(Book.isbn == isbn)
+    ).first() is not None
+
+
+def _render_book_form(status=200):
+    authors = db.session.execute(
+        db.select(Author).order_by(db.func.lower(Author.name))
+    ).scalars().all()
+    return render_template(
+        "add_book.html", authors=authors, form=request.form
+    ), status
+
+
+def _duplicate_isbn_response(isbn):
+    flash(f"A book with ISBN {isbn} is already in the library.", "error")
+    return _render_book_form(409)
+
+
 @app.route("/add_book", methods=["GET", "POST"])
 def add_book():
-    if request.method == "POST":
-        data = request.form
-        title = data.get("title")
-        isbn = data.get("isbn", "").replace("-", "")
-        publication_year = date.fromisoformat(data.get("publication_year")) if data.get("publication_year") else None
-        author_id = data.get("author_id")
+    if request.method == "GET":
+        return _render_book_form()
 
-        if not all([title, isbn, publication_year, author_id]):
-            return jsonify({"error": "Missing required fields"}), 400
+    fields, errors = _validate_book_form(request.form)
+    if errors:
+        for error in errors:
+            flash(error, "error")
+        return _render_book_form(400)
 
-        if not re.fullmatch(r"[0-9]{10}", isbn):
-            return jsonify({"error": "ISBN must contain exactly 10 digits; hyphens are allowed"}), 400
+    if _isbn_exists(fields["isbn"]):
+        return _duplicate_isbn_response(fields["isbn"])
 
-        new_book = Book(title=title, isbn=isbn, publication_year=publication_year, author_id=author_id)
-        db.session.add(new_book)
+    db.session.add(Book(**fields))
+    try:
         db.session.commit()
+    except IntegrityError:
+        # Another request may have added the same ISBN after the check above.
+        db.session.rollback()
+        return _duplicate_isbn_response(fields["isbn"])
 
-        return jsonify({"message": "Book added successfully"}), 201
+    flash(f'"{fields["title"]}" was added successfully.', "success")
+    return redirect(url_for("add_book"))
 
-    authors = db.session.execute(db.select(Author).order_by(Author.name)).scalars()
-    return render_template("add_book.html", authors=authors)
+
+def _validate_author_form(form):
+    """Return the cleaned author fields and a list of validation errors."""
+    errors = []
+    name = form.get("name", "").strip()
+    birth_date = _parse_date(form.get("birthdate", ""))
+    date_of_death_value = form.get("date_of_death", "")
+    date_of_death = _parse_date(date_of_death_value)
+
+    if not name:
+        errors.append("Author name is required.")
+    if birth_date is None:
+        errors.append("A valid birthdate is required.")
+    if date_of_death_value and date_of_death is None:
+        errors.append("Date of death must be a valid date or left empty.")
+
+    fields = {
+        "name": name,
+        "birth_date": birth_date,
+        "date_of_death": date_of_death,
+    }
+    return fields, errors
+
+
+def _author_exists(name):
+    return db.session.execute(
+        db.select(Author.id).where(
+            db.func.lower(Author.name) == db.func.lower(name)
+        )
+    ).first() is not None
+
+
+def _render_author_form(status=200):
+    return render_template("add_author.html", form=request.form), status
+
+
+def _duplicate_author_response(name):
+    flash(f'An author named "{name}" already exists.', "error")
+    return _render_author_form(409)
+
 
 @app.route("/add_author", methods=["GET", "POST"])
 def add_author():
-    if request.method == "POST":
-        name = request.form.get("name")
-        birth_date_str = request.form.get("birthdate")
-        date_of_death_str = request.form.get("date_of_death")
-        birth_date_ = date.fromisoformat(birth_date_str) if birth_date_str else None
-        date_of_death_ = date.fromisoformat(date_of_death_str) if date_of_death_str else None
+    if request.method == "GET":
+        return _render_author_form()
 
-        if not name:
-            return jsonify({"error": "Missing required field: name"}), 400
+    fields, errors = _validate_author_form(request.form)
+    if errors:
+        for error in errors:
+            flash(error, "error")
+        return _render_author_form(400)
 
-        new_author = Author(name=name, birth_date=birth_date_, date_of_death=date_of_death_)
-        db.session.add(new_author)
+    if _author_exists(fields["name"]):
+        return _duplicate_author_response(fields["name"])
+
+    db.session.add(Author(**fields))
+    try:
         db.session.commit()
+    except IntegrityError:
+        # Another request may have added the same name after the check above.
+        db.session.rollback()
+        return _duplicate_author_response(fields["name"])
 
-        return jsonify({"message": "Author added successfully"}), 201
-        #return redirect(url_for("user_detail", id=user.id))
+    flash(f'{fields["name"]} was added successfully.', "success")
+    return redirect(url_for("add_author"))
 
-    return render_template("add_author.html")
 
 if __name__ == "__main__":
     app.run(debug=True)

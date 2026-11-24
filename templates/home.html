@@ -32,7 +32,7 @@
         {% for author in authors %}
           <div class="author-card">
             <a class="author-name" href="{{ url_for('author_detail', author_id=author.id) }}">{{ author.name }}</a>
-            <form method="post" action="{{ url_for('delete_author', author_id=author.id) }}">
+            <form method="post" action="{{ url_for('delete_author', author_id=author.id) }}" data-confirm="Delete {{ author.name }} and all of their books? This cannot be undone.">
               <input type="hidden" name="q" value="{{ query }}">
               <input type="hidden" name="sort" value="{{ sort_by }}">
               <button class="danger" type="submit">Delete Author</button>
@@ -86,7 +86,7 @@
                 </select>
                 <button class="secondary" type="submit">Save</button>
               </form>
-              <form method="post" action="{{ url_for('delete_book', book_id=book.id) }}">
+              <form method="post" action="{{ url_for('delete_book', book_id=book.id) }}" data-confirm="Delete “{{ book.title }}”{% if book.author.books|length == 1 %} and its author {{ book.author.name }}, who has no other books{% endif %}? This cannot be undone.">
                 <input type="hidden" name="q" value="{{ query }}">
                 <input type="hidden" name="sort" value="{{ sort_by }}">
                 <button class="danger" type="submit">Delete Book</button>

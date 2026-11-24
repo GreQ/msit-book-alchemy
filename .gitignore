@@ -3,6 +3,9 @@
 #*.sqlite3
 #*.db
 
+# Database backups created by migrations
+*.sqlite.bak
+
 # Python bytecode
 __pycache__/
 *.py[cod]
