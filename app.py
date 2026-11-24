@@ -10,7 +10,7 @@ from flask import Flask, flash, redirect, render_template, request, url_for
 from sqlalchemy.exc import IntegrityError
 
 from data_models import Author, Book, db
-from migrations import run_migrations
+
 
 DB_NAME = "library.sqlite"
 DB_PATH = path.join(path.dirname(__file__), "data", DB_NAME)
@@ -28,10 +28,8 @@ db.init_app(app)
 with app.app_context():
     print("Creating database tables...")
     db.create_all()
-    run_migrations()
     if db.session.execute(db.select(Book.id).limit(1)).first() is None:
         from seed_data import seed_database
-
         print(f"Added {seed_database()} sample books.")
 
 
